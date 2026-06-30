@@ -16,17 +16,18 @@ variabel_domain = "@" + variabel_domain if variabel_domain else ""
 path_file_csv = "/Users/athiyyahzulfa/Documents/ROSYID/Affiliate/ffmpeg/users_updated.csv"
 # ====================================================
 
+
 def direct_verif(driver):
     current_title = driver.title
     print(f"[DIRECT VERIF] Title saat ini: {current_title}")
 
-    if current_title == "Admin Console":
+    if "Admin console" in current_title:
         print("[DIRECT VERIF] Sudah di admin.google.com — skip login, langsung verif_domain.")
         verif_domain(driver)
     else:
         print("[DIRECT VERIF] Belum di admin.google.com — jalankan login dulu.")
-        # login(driver)
-        verif_domain(driver)
+        login(driver)
+
 
 def init_driver():
     driver = Driver(
@@ -113,32 +114,46 @@ def login(driver):
     next_btn2.click()
     print("[LOGIN] Klik Berikutnya (password).")
 
+    # Tunggu halaman selesai load setelah login Google
     WebDriverWait(driver, 30).until(
         lambda d: d.execute_script("return document.readyState") == "complete"
     )
     print("[LOGIN] Halaman selesai loading setelah login.")
 
-    time.sleep(2) 
+    time.sleep(2)  # Tunggu redirect setelah login
+
+    # ===================== LOOP DETEKSI HALAMAN SETELAH LOGIN =====================
     while True:
         current_title = driver.title
         print(f"[LOGIN] Title saat ini: {current_title}")
 
-        if "Admin console" in current_title:
-            # Tunggu halaman selesai load dulu sebelum cek elemen
-            WebDriverWait(driver, 30).until(
-                lambda d: d.execute_script("return document.readyState") == "complete"
-            )
-
+        # Selama masih di halaman Login, jangan cek kondisi lain dulu (hindari false positive)
+        if "Login" in current_title:
+            print("[LOGIN] Masih di halaman Login, menunggu redirect...")
+            time.sleep(2)
             try:
-                domain_verify_elem = driver.find_element(
-                    By.XPATH, "//div[@data-analytics-id='DOMAINVERIFY']"
+                i_understand_btn = WebDriverWait(driver, 20).until(
+                    EC.element_to_be_clickable((
+                        By.XPATH,
+                        "//button[.//span[@jsname='V67aGc' and normalize-space()='I understand']]"
+                    ))
                 )
-                domain_belum_verif = True
-            except NoSuchElementException:
-                domain_belum_verif = False
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", i_understand_btn)
+                time.sleep(0.5)
+                i_understand_btn.click()
+                print("Klik 'I understand'.")
+            except Exception:
+                print("[LOGIN] Halaman 'Saya mengerti' tidak muncul.")
+                direct_verif(driver)
+                return
+            continue
 
-            if domain_belum_verif:
-                print("[LOGIN] Berhasil masuk ke Admin Console! Domain belum diverifikasi.")
+        if "Admin console" in current_title:
+            print("[LOGIN] Berhasil masuk ke Admin Console!")
+
+            # Cek apakah halaman masih punya alert verifikasi domain
+            if "Verify your domain to connect" in driver.page_source:
+                print("[LOGIN] Domain belum diverifikasi.")
                 verif_domain(driver)
                 return
             else:
@@ -152,78 +167,61 @@ def login(driver):
         else:
             print("[LOGIN] Menunggu halaman 'Admin Console' atau 'Selamat datang' muncul...")
             time.sleep(2)
-    try:
-        # 12. Tunggu "Selamat datang di akun baru Anda"
-        wait_for_text(driver, "Selamat datang di akun baru Anda")
-        print("[LOGIN] Halaman 'Selamat datang' muncul.")
-    except:
-        print("[LOGIN] Halaman 'Selamat datang' tidak muncul.")
-        direct_verif(driver) 
 
-    # 13. Sleep 0.5
+    # ===================== FLOW SETUP AKUN BARU =====================
     time.sleep(0.5)
 
     try:
-        i_understand_btn = WebDriverWait(driver, 20).until(
-            EC.element_to_be_clickable((
-                By.XPATH,
-                "//button[.//span[@jsname='V67aGc' and normalize-space()='I understand']]"
-            ))
-        )
-        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", i_understand_btn)
-        time.sleep(0.3)
-        i_understand_btn.click()
-    except:
-        print("[LOGIN] Halaman 'Saya mengerti' tidak muncul.")
-        direct_verif(driver)
-
-    try:
-        # 15. Tunggu "Terms of Service"
+        # Tunggu "Terms of Service"
         wait_for_text(driver, "Terms of Service")
         print("[LOGIN] Halaman Terms of Service muncul.")
-    except:
+    except Exception:
         print("[LOGIN] Halaman Terms of Service tidak muncul.")
         direct_verif(driver)
+        return
 
-    # 16. Sleep 0.5
     time.sleep(0.5)
 
     try:
-        # 17. Scroll ke bawah dan klik "Accept Terms of Service"
+        # Scroll ke bawah dan klik "Accept Terms of Service"
         accept_tos = WebDriverWait(driver, 20).until(
             EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Accept Terms of Service')]/.."))
         )
         scroll_and_click(driver, accept_tos)
         print("[LOGIN] Klik 'Accept Terms of Service'.")
-    except:
+    except Exception:
         print("[LOGIN] Halaman 'Accept Terms of Service' tidak muncul.")
         direct_verif(driver)
+        return
 
     try:
-        # 18. Tunggu "Make Workspace work for you"
+        # Tunggu "Make Workspace work for you"
         wait_for_text(driver, "Make Workspace work for you")
         print("[LOGIN] Halaman 'Make Workspace work for you' muncul.")
-    except:
+    except Exception:
         print("[LOGIN] Halaman 'Make Workspace work for you' tidak muncul.")
         direct_verif(driver)
+        return
 
-    # 19. Sleep 0.5
     time.sleep(0.5)
 
     try:
-        # 20. Klik "Get set up"
+        # Klik "Get set up"
         get_setup_btn = WebDriverWait(driver, 20).until(
             EC.element_to_be_clickable((By.XPATH, "//span[@jsname='V67aGc' and text()='Get set up']/.."))
         )
         get_setup_btn.click()
         print("[LOGIN] Klik 'Get set up'.")
-    except:
+    except Exception:
         print("[LOGIN] Halaman 'Get set up' tidak muncul.")
         direct_verif(driver)
+        return
 
-    # 21. Sleep 0.5
     time.sleep(0.5)
     print("[LOGIN] Selesai.")
+
+    # Setelah selesai setup akun baru, lanjut cek/verif domain
+    direct_verif(driver)
 
 
 def verif_domain(driver):
@@ -231,14 +229,17 @@ def verif_domain(driver):
 
     driver.get("https://admin.google.com/")
 
-    # 22. Klik link Verify
+    # Klik link Verify (dibatasi hanya di dalam alert banner verifikasi domain)
     verify_link = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.XPATH, "//a[@jsname='hSRGPd']"))
+        EC.element_to_be_clickable((
+            By.XPATH,
+            "//div[@data-analytics-id='DOMAINVERIFY']//a[@jsname='hSRGPd']"
+        ))
     )
     verify_link.click()
     print("[VERIF DOMAIN] Klik link Verify.")
 
-    # 23. Tutup tab lama, pindah ke tab baru
+    # Tutup tab lama, pindah ke tab baru
     time.sleep(2)
     original_window = driver.window_handles[0]
     new_window = driver.window_handles[-1]
@@ -246,52 +247,49 @@ def verif_domain(driver):
     driver.switch_to.window(new_window)
     print("[VERIF DOMAIN] Pindah ke tab baru.")
 
-    # 24. Tunggu "Let's set up your domain"
+    # Tunggu "Let's set up your domain"
     wait_for_text(driver, "set up your domain")
     print("[VERIF DOMAIN] Halaman setup domain muncul.")
 
-    # 25. Sleep 0.5
     time.sleep(0.5)
 
-    # 26. Klik "Get started"
+    # Klik "Get started"
     get_started_btn = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//span[@jsname='V67aGc' and text()='Get started']/.."))
     )
     get_started_btn.click()
     print("[VERIF DOMAIN] Klik 'Get started'.")
 
-    # 27. Tunggu "Your organization will be able"
+    # Tunggu "Your organization will be able"
     wait_for_text(driver, "Your organization will be able")
     print("[VERIF DOMAIN] Halaman konfirmasi organisasi muncul.")
 
-    # 28. Sleep 0.5
     time.sleep(0.5)
 
-    # 29. Klik "Switch to manual verification"
+    # Klik "Switch to manual verification" (atau "Continue" jika tidak muncul)
     try:
         manual_btn = WebDriverWait(driver, 4).until(
             EC.element_to_be_clickable((By.XPATH, "//span[@jsname='V67aGc' and text()='Switch to manual verification']/.."))
         )
         manual_btn.click()
         print("[VERIF DOMAIN] Klik 'Switch to manual verification'.")
-    except:
+    except Exception:
         continue_btn = WebDriverWait(driver, 4).until(
-        EC.element_to_be_clickable(
-            (By.XPATH, "//button[.//span[text()='Continue']]")
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[.//span[text()='Continue']]")
             )
         )
         continue_btn.click()
         print("[VERIF DOMAIN] Klik 'Continue' (manual verification tidak muncul).")
 
-    # 30. Tunggu "Add verification code"
+    # Tunggu "Add verification code"
     wait_for_text(driver, "Add verification code")
     print("[VERIF DOMAIN] Halaman 'Add verification code' muncul.")
 
-    # 31. Sleep 0.5
     time.sleep(0.5)
 
     try:
-        # 32. Klik checkbox "Code entry complete"
+        # Klik checkbox "Code entry complete"
         label = WebDriverWait(driver, 20).until(
             EC.element_to_be_clickable(
                 (
@@ -306,46 +304,42 @@ def verif_domain(driver):
         )
         time.sleep(0.5)
         label.click()
-    except:
+    except Exception:
         print("[VERIF DOMAIN] Checkbox 'Code entry complete' tidak muncul.")
 
-    # 33. Sleep 0.5
     time.sleep(0.5)
 
     checkbox = driver.find_element(
         By.XPATH,
         "//input[@aria-label='Code entry complete']"
     )
-
     print("selected =", checkbox.is_selected())
 
     confirm_btn = driver.find_element(
         By.XPATH,
         "//button[.//span[normalize-space()='Confirm']]"
     )
-
     print("disabled =", confirm_btn.get_attribute("disabled"))
 
-    # 34. Klik "Confirm"
+    # Klik "Confirm"
     try:
         confirm_btn = WebDriverWait(driver, 4).until(
             EC.element_to_be_clickable((By.XPATH, "//span[@jsname='V67aGc' and text()='Confirm']/.."))
         )
         confirm_btn.click()
         print("[VERIF DOMAIN] Klik 'Confirm'.")
-    except:
+    except Exception:
         confirm_btn = WebDriverWait(driver, 4).until(
             EC.presence_of_element_located(
                 (By.XPATH, "//button[.//span[text()='Confirm']]")
             )
         )
-
         driver.execute_script("""
         arguments[0].scrollIntoView({block:'center'});
         arguments[0].click();
         """, confirm_btn)
 
-    # 35. Tunggu "Your domain is verified!" dengan while True
+    # Tunggu "Your domain is verified!" dengan while True
     print("[VERIF DOMAIN] Menunggu verifikasi domain selesai...")
     while True:
         if "Your domain is verified!" in driver.page_source:
@@ -353,7 +347,6 @@ def verif_domain(driver):
             break
         time.sleep(2)
 
-    # 36. Sleep 0.5
     time.sleep(0.5)
     print("[VERIF DOMAIN] Selesai.")
 
