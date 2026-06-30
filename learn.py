@@ -335,8 +335,6 @@ def main():
     driver = init_driver()
     try:
         login(driver)
-        # HAPUS panggilan verif_domain(driver) di sini,
-        # karena sudah dipanggil di dalam fungsi login() dan direct_verif()
         print("\n[DONE] Semua proses selesai.")
     except Exception as e:
         print(f"\n[ERROR] Terjadi kesalahan: {e}")
