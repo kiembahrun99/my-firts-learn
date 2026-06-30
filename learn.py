@@ -9,8 +9,8 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # ===================== VARIABEL =====================
 link = "https://admin.google.com/ac/home?ecid=C00wa7t59" 
-email = "student@goog-test.reseller.gappslabs.co.s-lddnabha.qwiklabs-gsuite.net"
-password = "9fec17d4d13b3eaf46b0"
+email = "student@goog-test.reseller.gappslabs.co.s-zmo23vfi.qwiklabs-gsuite.net"
+password = "fb497cc266583c755d26"
 variabel_domain = email.split("@")[1] if "@" in email else ""
 variabel_domain = "@" + variabel_domain if variabel_domain else ""
 path_file_csv = "/Users/athiyyahzulfa/Documents/ROSYID/Affiliate/ffmpeg/users_updated.csv"
@@ -113,27 +113,37 @@ def login(driver):
     next_btn2.click()
     print("[LOGIN] Klik Berikutnya (password).")
 
-    time.sleep(2)  # Tunggu redirect setelah login
+    WebDriverWait(driver, 30).until(
+        lambda d: d.execute_script("return document.readyState") == "complete"
+    )
+    print("[LOGIN] Halaman selesai loading setelah login.")
+
+    time.sleep(2) 
     while True:
         current_title = driver.title
         print(f"[LOGIN] Title saat ini: {current_title}")
 
         if "Admin console" in current_title:
-            # Cek apakah elemen verifikasi domain ada di halaman
-            try:
-                verif_elem = driver.find_element(By.XPATH, "//a[@jsname='hSRGPd']")
-                verif_elem_ada = True
-            except NoSuchElementException:
-                verif_elem_ada = False
+            # Tunggu halaman selesai load dulu sebelum cek elemen
+            WebDriverWait(driver, 30).until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
 
-            if verif_elem_ada:
+            try:
+                domain_verify_elem = driver.find_element(
+                    By.XPATH, "//div[@data-analytics-id='DOMAINVERIFY']"
+                )
+                domain_belum_verif = True
+            except NoSuchElementException:
+                domain_belum_verif = False
+
+            if domain_belum_verif:
                 print("[LOGIN] Berhasil masuk ke Admin Console! Domain belum diverifikasi.")
                 verif_domain(driver)
-                return  # Selesai, keluar dari fungsi login()
-
+                return
             else:
-                print("[LOGIN] Berhasil masuk ke Admin Console! Domain sudah diverifikasi.")
-                return  # Selesai, keluar dari fungsi login()
+                print("[LOGIN] Domain sudah diverifikasi sebelumnya. Selesai.")
+                return
 
         elif "Selamat datang di akun baru Anda" in driver.page_source:
             print("[LOGIN] Halaman 'Selamat datang' muncul.")
@@ -142,7 +152,6 @@ def login(driver):
         else:
             print("[LOGIN] Menunggu halaman 'Admin Console' atau 'Selamat datang' muncul...")
             time.sleep(2)
-
     try:
         # 12. Tunggu "Selamat datang di akun baru Anda"
         wait_for_text(driver, "Selamat datang di akun baru Anda")
@@ -155,12 +164,15 @@ def login(driver):
     time.sleep(0.5)
 
     try:
-        # 14. Scroll ke bawah dan klik "Saya mengerti"
-        confirm_btn = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.ID, "confirm"))
+        i_understand_btn = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((
+                By.XPATH,
+                "//button[.//span[@jsname='V67aGc' and normalize-space()='I understand']]"
+            ))
         )
-        scroll_and_click(driver, confirm_btn)
-        print("[LOGIN] Klik 'Saya mengerti'.")
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", i_understand_btn)
+        time.sleep(0.3)
+        i_understand_btn.click()
     except:
         print("[LOGIN] Halaman 'Saya mengerti' tidak muncul.")
         direct_verif(driver)
