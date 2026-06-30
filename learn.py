@@ -163,6 +163,7 @@ def login(driver):
         print("BERHASIL: Tombol berhasil diklik.")
     except Exception as e:
         print(f"GAGAL: {e}")
+        skip_to_getsetup = True
 
     if not skip_to_getsetup:
         try:
@@ -226,8 +227,8 @@ def login(driver):
     wait = WebDriverWait(driver, 10)
 
     try:
-        link = driver.find_element(By.CSS_SELECTOR, 'a.UywwFc-mRLv6.UywwFc-RLmnJb')
-        driver.execute_script("arguments[0].click();", link)
+        link_domain = driver.find_element(By.CSS_SELECTOR, 'a.UywwFc-mRLv6.UywwFc-RLmnJb')
+        driver.execute_script("arguments[0].click();", link_domain)
         print("BERHASIL: Tombol Verify berhasil diklik.")
     except Exception as e:
         print(f"GAGAL: {e}")
@@ -717,6 +718,9 @@ def main():
     driver = init_driver()
     try:
         session_data = login(driver)
+        if not isinstance(session_data, dict):
+            raise TypeError(f"login() tidak mengembalikan dictionary, malah: {type(session_data)} -> {session_data}")
+        verify_domain_with_requests(session_data, domain, customer_id)
          # Contoh pemanggilan fungsi verifikasi via request
         domain = variabel_domain  # Misal "@example.com"
         customer_id = "04eequ7l"
