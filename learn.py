@@ -119,11 +119,26 @@ def login(driver):
         print(f"[LOGIN] Title saat ini: {current_title}")
 
         if "Admin console" in current_title:
-            print("[LOGIN] Berhasil masuk ke Admin Console!")
-            verif_domain(driver)
+            # Cek apakah elemen verifikasi domain ada di halaman
+            try:
+                verif_elem = driver.find_element(By.XPATH, "//a[@jsname='hSRGPd']")
+                verif_elem_ada = True
+            except NoSuchElementException:
+                verif_elem_ada = False
+
+            if verif_elem_ada:
+                print("[LOGIN] Berhasil masuk ke Admin Console! Domain belum diverifikasi.")
+                verif_domain(driver)
+                return  # Selesai, keluar dari fungsi login()
+
+            else:
+                print("[LOGIN] Berhasil masuk ke Admin Console! Domain sudah diverifikasi.")
+                return  # Selesai, keluar dari fungsi login()
+
         elif "Selamat datang di akun baru Anda" in driver.page_source:
             print("[LOGIN] Halaman 'Selamat datang' muncul.")
             break
+
         else:
             print("[LOGIN] Menunggu halaman 'Admin Console' atau 'Selamat datang' muncul...")
             time.sleep(2)
