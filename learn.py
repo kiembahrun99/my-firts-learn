@@ -720,11 +720,10 @@ def main():
         session_data = login(driver)
         if not isinstance(session_data, dict):
             raise TypeError(f"login() tidak mengembalikan dictionary, malah: {type(session_data)} -> {session_data}")
-        verify_domain_with_requests(session_data, domain, customer_id)
-         # Contoh pemanggilan fungsi verifikasi via request
+
         domain = variabel_domain  # Misal "@example.com"
         customer_id = "04eequ7l"
-        
+
         verify_domain_with_requests(session_data, domain, customer_id)
         # manage_google(driver)
         print("\n[DONE] Semua proses selesai.")
@@ -735,7 +734,6 @@ def main():
     finally:
         time.sleep(10000)
         # driver.quit()
-
 
 if __name__ == "__main__":
     main()
